@@ -9,7 +9,13 @@ var Links = require('./app/collections/links');
 var Link = require('./app/models/link');
 var Click = require('./app/models/click');
 
+var cookieParser = require('cookie-parser');
+var expressSession = require('express-session');
+
 var app = express();
+
+app.use(cookieParser());
+app.use(expressSession({secret: 'Mitch'}));
 
 app.configure(function() {
   app.set('views', __dirname + '/views');
@@ -20,10 +26,15 @@ app.configure(function() {
 });
 
 app.get('/', function(req, res) {
+  // console.log(req.session);
+  // if checkuser says theyre not logged in, redirect login
+  if(!req.session.username) { res.redirect('login'); }
   res.render('index');
 });
 
 app.get('/create', function(req, res) {
+  // if checkuser says theyre not logged in, redirect login
+  if(!req.session.username) { res.redirect('login'); }
   res.render('index');
 });
 
@@ -50,11 +61,12 @@ app.post('/links', function(req, res) {
           console.log('Error reading URL heading: ', err);
           return res.send(404);
         }
-
+        console.log(req.session)
         var link = new Link({
           url: uri,
           title: title,
-          base_url: req.headers.origin
+          base_url: req.headers.origin,
+          user_id: req.session.userid
         });
 
         link.save().then(function(newLink) {
@@ -69,23 +81,35 @@ app.post('/links', function(req, res) {
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
+app.get('/logout', function(req, res) {
+   if(req.session.username) {
+    req.session.destroy(function(err) {
+      if(err) { }
+      res.redirect('login');
+    });
+  }
+   else {res.redirect('login');}
+});
 
 app.get('/signup', function(req, res) {
+  if(req.session.username) { res.redirect('index'); }
   res.render('signup');
 });
 
 app.post('/signup', function(req, res) {
   var username = req.body.username;
   var password = req.body.password;
-  // if(username && password) {
   var user = new User({
     username: username,
     password: password
   });
 
   user.save().then(function(newUser) {
+    console.log(newUser);
     Users.add(newUser);
-    // res.send(200, newUser);
+    req.session.username = username;
+    req.session.userid = newUser.id;
+    console.log(req.session);
     res.redirect('index');
   }).catch(function(error){
     res.send(500, error);
@@ -93,6 +117,7 @@ app.post('/signup', function(req, res) {
 });
 
 app.get('/login', function(req, res) {
+  if(req.session.username) { res.redirect('index'); }
   res.render('login');
 });
 
@@ -106,17 +131,12 @@ app.post('/login', function(req, res) {
   });
 
   user.fetch({require: true}).then(function(loginUser) {
-    Users.add(loginUser);
-    res.send(200, loginUser);
-    // res.redirect('index');
+    req.session.username = username;
+    req.session.userid = loginUser.id;
+    res.redirect('index');
   }).catch(function(error){
-    res.send(500, 'PROBLEMS');
+    res.redirect('login');
   });
-
-  // .catch(function(error){
-  //   res.send(500, error);
-  //   // res.send(500, error);
-  // });
 });
 
 

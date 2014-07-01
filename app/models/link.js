@@ -1,6 +1,6 @@
 var db = require('../config');
 var Click = require('./click');
-var User = require('./user');
+var User = require('./user.js');
 
 var crypto = require('crypto');
 
