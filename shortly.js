@@ -30,7 +30,7 @@ app.get('/create', function(req, res) {
 app.get('/links', function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
-  })
+  });
 });
 
 app.post('/links', function(req, res) {
@@ -70,6 +70,54 @@ app.post('/links', function(req, res) {
 // Write your authentication routes here
 /************************************************************/
 
+app.get('/signup', function(req, res) {
+  res.render('signup');
+});
+
+app.post('/signup', function(req, res) {
+  var username = req.body.username;
+  var password = req.body.password;
+  // if(username && password) {
+  var user = new User({
+    username: username,
+    password: password
+  });
+
+  user.save().then(function(newUser) {
+    Users.add(newUser);
+    // res.send(200, newUser);
+    res.redirect('index');
+  }).catch(function(error){
+    res.send(500, error);
+  });
+});
+
+app.get('/login', function(req, res) {
+  res.render('login');
+});
+
+app.post('/login', function(req, res) {
+  var username = req.body.username;
+  var password = req.body.password;
+
+  var user = new User({
+    username: username,
+    password: password
+  });
+
+  user.fetch({require: true}).then(function(loginUser) {
+    Users.add(loginUser);
+    res.send(200, loginUser);
+    // res.redirect('index');
+  }).catch(function(error){
+    res.send(500, 'PROBLEMS');
+  });
+
+  // .catch(function(error){
+  //   res.send(500, error);
+  //   // res.send(500, error);
+  // });
+});
 
 
 /************************************************************/
