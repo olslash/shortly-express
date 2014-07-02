@@ -1,6 +1,7 @@
 var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
+var bcrypt = require('bcrypt-nodejs');
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -99,6 +100,7 @@ app.get('/signup', function(req, res) {
 app.post('/signup', function(req, res) {
   var username = req.body.username;
   var password = req.body.password;
+  var password = bcrypt.hashSync(password, null);
   var user = new User({
     username: username,
     password: password
@@ -126,16 +128,22 @@ app.post('/login', function(req, res) {
   var password = req.body.password;
 
   var user = new User({
-    username: username,
-    password: password
+    username: username
   });
 
-  user.fetch({require: true}).then(function(loginUser) {
-    req.session.username = username;
-    req.session.userid = loginUser.id;
-    res.redirect('index');
-  }).catch(function(error){
-    res.redirect('login');
+  user.fetch({require: true}).then(function(user){
+    console.log(user);
+    if(bcrypt.compareSync(password, user.attributes.password)){
+      req.session.username = username;
+      req.session.userid = user.id;
+      res.redirect('index');
+    }else{
+      res.redirect('login');
+    }
+  })
+  .catch(function(error){
+    res.redirect('signup');
+    console.log(error);
   });
 });
 
